@@ -1,11 +1,13 @@
-from flask import Flask, url_for
+from flask import Flask, url_for, redirect, render_template
 from data import db_session
-from flask_login import LoginManager, LoginForm, login_user
+from flask_login import LoginManager, login_user
 from data.users import User
+from forms.login import LoginForm
 
 
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -93,6 +95,8 @@ def login():
                                message="Неправильный логин или пароль",
                                form=form)
     return render_template('login.html', title='Авторизация', form=form)
+
+
 if __name__ == '__main__':
     db_session.global_init("db/blogs.db")
     app.run(port=8080, host='127.0.0.1')

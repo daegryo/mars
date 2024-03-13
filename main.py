@@ -1,8 +1,9 @@
 from flask import Flask, url_for, redirect, render_template
 from data import db_session
-from flask_login import LoginManager, login_user
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from data.users import User
 from forms.login import LoginForm
+from data.news import News
 
 
 
@@ -11,6 +12,8 @@ app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+
+
 @login_manager.user_loader
 def load_user(user_id):
     db_sess = db_session.create_session()
@@ -18,6 +21,12 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
+    db_sess = db_session.create_session()
+    if current_user.is_authenticated:
+        news = db_sess.query(News).filter(
+            (News.user == current_user) | (News.is_private != True))
+    else:
+        news = db_sess.query(News).filter(News.is_private != True)
     return "Миссия Колонизация Марса"
 
 
@@ -88,6 +97,7 @@ def login():
     if form.validate_on_submit():
         db_sess = db_session.create_session()
         user = db_sess.query(User).filter(User.email == form.email.data).first()
+        user.set_password(form.password.data)
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember_me.data)
             return redirect("/")
@@ -96,7 +106,20 @@ def login():
                                form=form)
     return render_template('login.html', title='Авторизация', form=form)
 
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect("/")
 
 if __name__ == '__main__':
     db_session.global_init("db/blogs.db")
     app.run(port=8080, host='127.0.0.1')
+
+user = User()
+user.name = "Пользователь 1"
+user.about = "биография пользователя 1"
+user.email = "email@email.ru"
+db_sess = db_session.create_session()
+db_sess.add(user)
+db_sess.commit()
